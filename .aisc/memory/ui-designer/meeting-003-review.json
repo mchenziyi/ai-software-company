@@ -1,0 +1,16 @@
+{
+  "type": "decision",
+  "title": "参与需求评审 meeting-003",
+  "content": "[REVIEW_COMMENT]\n## ui-designer 的复核意见\n\n### Action Items 验证\n上一轮 Action Items：\n- Action Item 1: 补充视频转码失败的处理逻辑：若转码失败，视频状态应变为 rejected，系统返回明确错误原因，并允许用户删除失败视频或重新上传。\n\n逐条检查：\n- Action Item 1: [已解决] — PRD v3 的 changes 明确包含了该处理逻辑，3.2 后置条件描述了状态流转及错误原因返回，3.7 详细说明了 rejected 视频的展示（失败原因）和操作（删除、重新上传），业务规则中补充了 rejected 触发场景和可见性规则，上传规则增加了失败后操作支持。所有要求均已覆盖。\n\n### 🟢 Suggestion\n- **重新上传时保留原有元数据**：建议在重新上传交互中，自动填充原视频的标题、描述、标签（允许用户修改），避免重复输入。当前 PRD 未明确这一点，虽非阻断但可提升体验。\n- **统一状态显示文案**：3.7 提到“显示当前状态”，建议前端统一文案：pending → “处理中”，available → “已发布”，rejected → “转码失败”。同时建议在 rejected 状态旁显示具体错误原因（如“转码超时”），PRD 已有但需在 UI 设计时确保位置醒目。\n- **补充空状态文案**：PRD 在 3.4 中提到了搜索结果空状态提示，但 3.6“我的收藏”和 3.7“我的上传”未明确空状态文案。建议统一为：“暂无收藏的视频”、“您还没有上传视频”。\n- **删除操作增加二次确认**：为保证用户不会误删，建议在点击“删除”后弹出确认对话框（如“确定删除该视频？删除后不可恢复”）。PRD 未提及，但不影响功能冻结。\n\n### ✅ Approved\n- 视频转码失败处理逻辑完整：状态 rejected、错误原因返回、删除/重新上传操作均已覆盖。\n- 用户交互流程（上传、浏览、搜索、收藏、个人管理）状态覆盖良好：loading/empty/error/edge 均有提及（如乐观更新回滚、空列表提示、文件大小前端校验等）。\n- 所有上一轮 action items 已解决，无新增 blocker。\n\n## 总体评价\n- [x] Approve（action items 全部解决，无新增 blocker，同意冻结）\n- [ ] Needs Revision（仍有未解决的 blocker 或 important 问题）",
+  "relations": [
+    {
+      "type": "based_on",
+      "target_type": "meeting",
+      "target_id": "meeting-003"
+    }
+  ],
+  "tags": [
+    "需求评审",
+    "PRD"
+  ]
+}

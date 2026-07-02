@@ -1,0 +1,16 @@
+{
+  "type": "decision",
+  "title": "参与需求评审 meeting-002",
+  "content": "[REVIEW_COMMENT]\n## ui-designer 的复核意见\n\n### Action Items 验证\n上一轮 Action Items：\n- Action Item 1: 已解决 — 明确为云 OSS + 前端直传签名。\n- Action Item 2: 已解决 — 明确使用固定占位图，暂不支持自动取帧或用户上传。\n- Action Item 3: 已解决 — 视频 URL 公开可访问，无需认证。\n- Action Item 4: 已解决 — 搜索按上传时间倒序排序，不再定义匹配度。\n- Action Item 5: 已解决 — 收藏按钮统一为切换行为，移除二义性。\n- Action Item 6: 已解决 — API 增加 `is_favorited` 字段。\n- Action Item 7: 已解决 — 未登录弹窗提示，保留当前页面，不跳转。\n- Action Item 8: 已解决 — 大小上限 2GB，格式 mp4/avi/mov，后台可配置。\n- Action Item 9: 已解决 — 分页超出总页数返回空列表，正常返回 total/total_pages。\n- Action Item 10: 已解决 — 每页数量超过 100 截断为 100，不报错。\n- Action Item 11: 已解决 — 英文逗号分隔，trim 空格，忽略空标签。\n- Action Item 12: 已解决 — 详情页明确列出标题、描述、标签、上传者、上传时间、封面占位图、收藏状态。\n- Action Item 13: 已解决 — 上传过程增加 loading、进度条、成功/失败提示。\n- Action Item 14: 已解决 — 验收标准包含并发上传/收藏测试用例。\n\n### 🔴 新增 Blocker（仅限被遗漏的阻断级问题）\n无 — 所有上一轮 blocker 已解决，未发现新的阻断级问题。\n\n### 🟡 Important\n- **视频详情页缺少“下载”或“查看文件”的交互说明**：PRD 3.6 提到“视频文件 url（可下载但不播放）”，但未说明下载按钮的 UI 呈现方式（例如是否提供下载按钮，或直接显示链接供用户右键另存？）。虽然播放 out of scope，但用户进入详情页后如何获取视频文件？建议明确：若提供下载按钮，需定义其交互（如弹窗确认/直接下载）；若不提供，建议移除“可下载”的描述，避免用户困惑。  \n  *（非阻断，但影响前端实现清晰度，建议在下一轮补充）*\n\n### 🟢 Suggestion\n1. **列表页描述截断长度**：PRD 3.3 提到展示“描述摘要（前50字）”，建议明确前端截断还是后端返回截断后的字段。个人建议后端返回完整 description，前端控制展示长度，便于后续扩展（如支持展开详情）。\n2. **未登录时收藏按钮的视觉状态**：当前 PRD 只规定点击后弹窗，未说明按钮在未登录时是否灰化或正常显示。建议统一为“正常显示可点击，点击触发弹窗”，符合主流 UX（如 B 站）。\n3. **标签展示在列表页的样式**：3.3 说列表页展示标签，但未说明标签过多时如何截断（如最多显示 3 个标签 + “+N”）。建议在后端或前端约定截断规则，避免布局错乱。\n4. **“我的收藏”页面空状态**：边界条件中已覆盖“暂无视频”，建议同样为该页面提供“暂无收藏”的文案提示。\n5. **上传进度条的实现位置**：前端直传签名方式下，进度反馈依赖于前端与 OSS 的交互。PRD 仅描述“显示进度条”，建议在技术设计时明确是否使用原生 XMLHttpRequest 的 progress 事件或 OSS SDK 自带的进度回调。\n\n### ✅ Approved\n- 用户认证 / 上传 / 列表搜索 / 收藏切换 / 收藏列表 / 详情页的交互流程完整，状态覆盖到位（loading/empty/error/edge cases）。\n- 所有上一轮 action items 已落实，无遗留争议。\n- 并发测试用例已纳入验收标准，覆盖关键业务场景。\n\n## 总体评价\n- [x] Approve（action items 全部解决，无新增 blocker，同意冻结）\n- [ ] Needs Revision（仍有未解决的 blocker 或 important 问题）",
+  "relations": [
+    {
+      "type": "based_on",
+      "target_type": "meeting",
+      "target_id": "meeting-002"
+    }
+  ],
+  "tags": [
+    "需求评审",
+    "PRD"
+  ]
+}

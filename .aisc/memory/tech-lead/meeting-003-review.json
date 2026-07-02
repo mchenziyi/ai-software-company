@@ -1,0 +1,16 @@
+{
+  "type": "decision",
+  "title": "参与需求评审 meeting-003",
+  "content": "[REVIEW_COMMENT]\n## tech-lead 的复核意见\n\n### Action Items 验证\n上一轮 Action Items：\n- Action Item 1: 补充视频转码失败的处理逻辑：若转码失败，视频状态应变为 rejected，系统返回明确错误原因，并允许用户删除失败视频或重新上传。\n\n逐条检查：\n- Action Item 1: [已解决] — PRD 版本3 在 3.2、3.7、业务规则以及 changes 中均明确补充了 rejected 状态的定义、错误原因记录、删除和重新上传的操作流程，与原要求完全一致。\n\n### 🔴 新增 Blocker（仅限被遗漏的阻断级问题）\n- 无\n\n### 🟡 Important\n- 重新上传时，原 rejected 视频的封面图、标签等关联数据是否需要一并清除？PRD 在依赖与假设中提到“原视频的收藏记录将被删除”，但未明确封面图、标签等。建议在后续技术设计时统一处理，避免残留数据不一致。但当前不影响 MVP 冻结。\n\n### 🟢 Suggestion\n- 建议为转码失败原因定义一组错误码枚举（如 FORMAT_UNSUPPORTED、TRANSCODE_TIMEOUT 等），便于前端国际化展示和后端统一维护。\n- 重新上传操作目前定义为“创建新上传任务并删除原记录”，可考虑是否允许直接覆盖（保留原有视频ID），以维持收藏、评论等关联（但本版本无评论）。若后续版本需要保留关联，建议提前预留字段或讨论替代方案。\n\n### ✅ Approved\n- 视频转码失败处理逻辑已完整覆盖：状态流转、错误原因展示、用户可删除/重新上传。\n- 分页、排序、搜索、收藏等各功能点定义清晰，无技术矛盾。\n- 上传规则、格式限制、大小限制、安全要求等均已明确。\n\n## 总体评价\n- [x] Approve（action items 全部解决，无新增 blocker，同意冻结）\n- [ ] Needs Revision（仍有未解决的 blocker 或 important 问题）",
+  "relations": [
+    {
+      "type": "based_on",
+      "target_type": "meeting",
+      "target_id": "meeting-003"
+    }
+  ],
+  "tags": [
+    "需求评审",
+    "PRD"
+  ]
+}

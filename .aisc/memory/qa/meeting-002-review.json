@@ -1,0 +1,16 @@
+{
+  "type": "decision",
+  "title": "参与需求评审 meeting-002",
+  "content": "[REVIEW_COMMENT]\n## qa 的复核意见\n\n### Action Items 验证\n上一轮 Action Items：\n- Action Item 1: 已解决 — PRD 明确存储方案为云对象存储（阿里云 OSS），上传方式为前端直传签名。\n- Action Item 2: 已解决 — PRD 明确本版本暂不支持封面，统一使用固定占位图。\n- Action Item 3: 已解决 — PRD 明确视频 URL 公开可访问，无需认证。\n- Action Item 4: 已解决 — PRD 明确搜索按上传时间倒序排序，不定义匹配度。\n- Action Item 5: 已解决 — PRD 明确收藏按钮为切换行为（已收藏取消，未收藏添加）。\n- Action Item 6: 已解决 — PRD 明确列表/详情 API 返回 `is_favorited` 字段。\n- Action Item 7: 已解决 — PRD 明确未登录用户点击收藏/上传时弹窗提示并保留页面。\n- Action Item 8: 已解决 — PRD 明确文件大小上限 2GB，支持格式 mp4/avi/mov，后台可配置。\n- Action Item 9: 已解决 — PRD 明确超出总页数时返回空列表（data=[]），total/total_pages 正常。\n- Action Item 10: 已解决 — PRD 明确每页数量超过 100 时截断为 100 不报错。\n- Action Item 11: 已解决 — PRD 明确标签用英文逗号分隔，自动 trim，空标签忽略。\n- Action Item 12: 已解决 — PRD 补充了详情页字段列表（标题、描述、标签、上传者、上传时间、封面，收藏状态）。\n- Action Item 13: 已解决 — PRD 明确上传过程显示 loading、进度条、成功/失败提示。\n- Action Item 14: 已解决 — PRD 验收标准中包含了并发测试场景（同一用户并发收藏/取消，多用户并发上传）。\n\n### 🔴 新增 Blocker（仅限被遗漏的阻断级问题）\n无\n\n### 🟡 Important\n- 分页参数 `page` 和 `per_page` 的边界值未定义：当 `page` 小于 1（如 0 或负数）时，当前 PRD 未给出预期行为。建议统一处理为返回第一页（`page=1`），避免后端直接报错或返回异常数据。同样，`per_page` 小于 1 时（如 0 或负数），建议截断为默认值 20 或最小 1，并返回明确错误码（或不报错）。\n\n### 🟢 Suggestion\n- 搜索功能建议增加关键词长度限制（例如最大 200 字符），防止极端输入导致性能问题，并给出前端提示。\n- 上传过程中若用户主动取消或关闭页面，建议在 UI 层面提示“上传已取消”并清理临时文件（技术实现细节可交给开发评估）。\n- 并发测试验收标准中，建议补充“最终状态与最后一次操作一致”的具体验证方式（如通过时间戳或请求序号判断），以增强可测试性。\n\n### ✅ Approved\n- 所有 14 个 Action Items 均已按上一轮裁决完整解决。\n- PRD 核心功能定义清晰，业务规则、边界条件、验收标准覆盖了主要异常流程。\n- 未登录用户交互、收藏切换、分页行为、标签规则等关键分歧已统一。\n- 整体可测试性强，可进入下一阶段（API 设计）。\n\n## 总体评价\n- [x] Approve（action items 全部解决，无新增 blocker，同意冻结）\n- [ ] Needs Revision（仍有未解决的 blocker 或 important 问题）",
+  "relations": [
+    {
+      "type": "based_on",
+      "target_type": "meeting",
+      "target_id": "meeting-002"
+    }
+  ],
+  "tags": [
+    "需求评审",
+    "PRD"
+  ]
+}

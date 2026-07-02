@@ -1,0 +1,16 @@
+{
+  "type": "decision",
+  "title": "参与需求评审 meeting-002",
+  "content": "[REVIEW_COMMENT]\n## frontend 的复核意见\n\n### Action Items 验证\n上一轮 Action Items（共14项）：\n- Action Item 1: 已解决 — PRD 明确“前端直传签名方式上传至云对象存储（如阿里云 OSS）”。\n- Action Item 2: 已解决 — PRD 明确“封面字段统一使用固定占位图”，并在 changes 第2条确认。\n- Action Item 3: 已解决 — PRD 明确“视频 URL 公开可访问（无需认证）”。\n- Action Item 4: 已解决 — PRD 明确“搜索结果按上传时间倒序排列”，不再定义匹配度。\n- Action Item 5: 已解决 — PRD 明确“收藏按钮统一为切换行为”，且 changes 第5条移除二义描述。\n- Action Item 6: 已解决 — PRD 明确列表/详情 API 增加 `is_favorited` 字段。\n- Action Item 7: 已解决 — PRD 明确“未登录用户弹窗提示‘请先登录’，保留当前页面不跳转”。\n- Action Item 8: 已解决 — 文件大小上限2GB，支持格式 mp4/avi/mov。\n- Action Item 9: 已解决 — 分页超出总页数返回空列表，total/total_pages 正常返回。\n- Action Item 10: 已解决 — 每页数量参数超过100时截断为100，不报错。\n- Action Item 11: 已解决 — 标签输入规则（英文逗号分隔、trim、空标签忽略）。\n- Action Item 12: 已解决 — 详情页字段已补充（标题、描述、标签、上传者、上传时间、封面占位图、收藏状态）。\n- Action Item 13: 已解决 — 上传过程 UI 状态描述（loading、进度条、成功/失败提示）已加入功能点和验收标准。\n- Action Item 14: 已解决 — 验收标准中已添加并发场景测试用例。\n\n所有 Action Items 均已解决，无遗漏。\n\n### 🔴 新增 Blocker（仅限被遗漏的阻断级问题）\n无\n\n### 🟡 Important\n- **上传进度条实现依赖**：前端直传签名（如阿里云 OSS）可以获取上传进度，但需要确保前端使用对应 SDK（如 `ali-oss`）并处理分片上传的进度回调。建议在技术选型时确认支持，避免进度显示无法实现。\n- **搜索防抖与用户体验**：PRD 未明确搜索触发方式。若为实时搜索（输入即搜索），建议后端或前端增加防抖（如 300ms），避免频繁请求；若为点击搜索按钮，则不需要。建议前台实现时默认加入防抖，此处标记以提醒后端接口需能承受快速查询。\n\n### 🟢 Suggestion\n- **收藏按钮的乐观更新**：可考虑在前端先反转按钮状态（乐观更新），请求失败后再回滚，提升交互流畅度。PRD 不强制，可作为实现建议。\n- **移动端响应式适配**：PRD 未提及响应式需求，但从用户故事看，视频列表和上传页在移动端应有良好展示（如卡片布局、弹窗适配）。建议在前端设计时考虑，虽非 blocker 但提升体验。\n- **上传表单校验前端化**：标题和描述长度限制（<=100/500）、文件大小和格式检查可在前端提前拦截，减少无效请求。PRD 中未要求，但推荐实现。\n\n### ✅ Approved\n- 所有 Action Items 验证通过，且上一轮裁决的冲突（收藏交互、分页行为）已正确执行。\n- 视频存储方案、封面、访问控制、搜索排序、收藏状态、未登录交互、分页行为、标签规则、详情页定义、上传 UI、并发测试等关键问题均已闭环。\n- 未发现新的阻断性问题，可以冻结 PRD。\n\n## 总体评价\n- [x] Approve（action items 全部解决，无新增 blocker，同意冻结）\n- [ ] Needs Revision（仍有未解决的 blocker 或 important 问题）",
+  "relations": [
+    {
+      "type": "based_on",
+      "target_type": "meeting",
+      "target_id": "meeting-002"
+    }
+  ],
+  "tags": [
+    "需求评审",
+    "PRD"
+  ]
+}

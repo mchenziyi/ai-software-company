@@ -158,26 +158,32 @@ status: draft
 [NEEDS CLARIFICATION]
 - """
 
-REVIEWER_BASE_PROMPT = """你被邀请参加需求评审会议。
+# ─── Round 1: 全量深度评审 ───────────────────────────────────
+EXHAUSTIVE_REVIEW_PROMPT = """你被邀请参加第 1 轮需求评审会议。
 
-请阅读目标 PRD 的内容，基于你的专业角色，提交评审意见。
+这是 PRD 的**首次全量深度评审**。你的目标是尽可能一次性暴露所有问题，不要保留到下一轮。
 
 # 评审要求
-1. 先完整阅读 PRD
+1. 完整阅读 PRD
 2. 从你的专业视角逐一审查
 3. 每个意见标注严重程度：
-   - 🔴 blocker：不解决无法继续
-   - 🟡 important：应该改
+   - 🔴 blocker：如果不解决，下一阶段（API 设计）必然失败或产出的 API 不可用
+   - 🟡 important：应该改，但不阻塞下一阶段启动
    - 🟢 suggestion：建议改，仅供参考
    - ✅ approve：没有问题
 
-4. 输出格式：
+4. **关键规则**：
+   - blocker 必须是"不改就无法进入 API 设计"的问题，而不是"可以更好"
+   - 功能范围争议（如 X 功能该不该进 MVP）不属于 blocker——由 PM 决定
+   - 尽量一次性列出所有问题，本轮结束后不再接受新的 blocker（除非后续发现真正阻断级问题）
+
+5. 输出格式：
 
 [REVIEW_COMMENT]
 ## {role} 的评审意见
 
 ### 🔴 Blocker
-- <具体问题>：<为什么是 blocker，建议怎么改>
+- <具体问题>：<为什么是 blocker，不改会导致什么后果>
 
 ### 🟡 Important
 - <具体问题>
@@ -192,6 +198,48 @@ REVIEWER_BASE_PROMPT = """你被邀请参加需求评审会议。
 - [ ] Approve（没有 blocker，同意冻结）
 - [ ] Needs Revision（有 blocker 或 important 问题）
 - [ ] Reject（方向完全不对）"""
+
+# ─── Round 2+: 定向复核 ──────────────────────────────────────
+VERIFICATION_REVIEW_PROMPT = """你被邀请参加需求复核会议（非首次评审）。
+
+本次评审的目标不是重新审查整个 PRD，而是**验证上一轮的修改是否到位**。
+
+# 评审要求
+1. 阅读当前 PRD 和上一轮的 Decision + Action Items
+2. 逐条检查每个 Action Item 是否已解决
+3. **新的 blocker 只能**在满足以下条件时提出：
+   - 这个问题在上一轮被遗漏，且是"如果不改，下一阶段必然失败"级别的
+   - 如果只是"可以更好"，标记为 suggestion，不阻止 freeze
+4. **不能推翻已经裁决过的结论**。如果上一轮 Moderator 已裁定某功能进/出 MVP，你不能重新提出异议。如确需推翻，必须说明理由并标记 escalate_to_user: true
+
+5. 输出格式：
+
+[REVIEW_COMMENT]
+## {role} 的复核意见
+
+### Action Items 验证
+{prev_action_items_summary}
+
+逐条检查：
+- Action Item 1: [已解决 / 未解决 / 部分解决] — <说明>
+- Action Item 2: [已解决 / 未解决 / 部分解决] — <说明>
+
+### 🔴 新增 Blocker（仅限被遗漏的阻断级问题）
+- <问题>：<为什么是 blocker，为什么上一轮没发现>
+- 如无新增 blocker，写"无"
+
+### 🟡 Important
+- <重要但非阻断的问题>
+
+### 🟢 Suggestion
+- <建议>
+
+### ✅ Approved
+- <确认没问题的部分>
+
+## 总体评价
+- [ ] Approve（action items 全部解决，无新增 blocker，同意冻结）
+- [ ] Needs Revision（仍有未解决的 blocker 或 important 问题）"""
 
 REVIEWER_ROLES = {
     "tech-lead": """
@@ -228,6 +276,12 @@ MODERATOR_PROMPT = """你是 Project Manager，项目的流程调度者。
 2. 标注冲突（不同评审人意见矛盾的地方）
 3. 标注 blocker（不解决无法继续的问题）
 4. 做出决策
+
+# 范围锁定规则（Scope Lock）
+- **你不能推翻之前轮次已经裁决过的结论**。
+- 如果之前的 Decision 已经裁定某功能进入/移出 MVP 范围，后续轮次必须继承该裁定。
+- 如果两个 reviewer 对同一议题意见冲突，优先采纳上一轮的裁决结果。
+- 如果 reviewer 要求推翻已有裁决，必须在 conflicts 中标注 escalate_to_user: true。
 
 **你必须只输出一个 JSON 对象，不要输出任何其他文字，不要用 markdown 代码块包裹。**
 
@@ -329,24 +383,50 @@ def step2_create_meeting(stage: dict, round_num: int) -> dict:
     print(f"✅ Meeting {meeting_id} 已创建，参与者: {meeting['meta']['participants']}")
     return meeting
 
-def step3_parallel_review(prd: str, stage: dict, meeting: dict) -> list[dict]:
-    """Step 3: 并行评审 — 所有 Agent 独立审阅 PRD."""
+def step3_parallel_review(prd: str, stage: dict, meeting: dict, round_num: int, prev_decision: Optional[dict] = None) -> list[dict]:
+    """Step 3: 评审 — Round 1 全量深度评审, Round 2+ 定向复核."""
+    is_round1 = (round_num == 1)
+    review_type = "全量深度评审" if is_round1 else "定向复核"
     print("=" * 60)
-    print("STEP 3: 并行评审（各 Agent 独立审阅 PRD）")
+    print(f"STEP 3: 并行评审 — {review_type}")
     print("=" * 60)
     reviews = []
+    
     for agent_id in stage["reviewer_agents"]:
         role_hint = REVIEWER_ROLES.get(agent_id, "")
-        system = REVIEWER_BASE_PROMPT.replace("{role}", f"{agent_id} ({role_hint.split(chr(10))[1].strip('# ')}" if role_hint else agent_id)
-        system = f"{system}\n{role_hint}"
-        user_prompt = f"请评审以下 PRD：\n\n{prd}"
         
-        print(f"  ⏳ {agent_id} 正在审阅...")
+        if is_round1:
+            system = EXHAUSTIVE_REVIEW_PROMPT.replace("{role}", agent_id)
+            system = f"{system}\n{role_hint}"
+            user_prompt = f"请对以下 PRD 进行全量深度评审：\n\n{prd}"
+        else:
+            system = VERIFICATION_REVIEW_PROMPT.replace("{role}", agent_id)
+            # Build action items summary for verification
+            prev_items = prev_decision.get("action_items", []) if prev_decision else []
+            if prev_items:
+                prev_summary = "\n".join(
+                    f"- Action Item {i+1}: {a['description'] if isinstance(a, dict) else str(a)}"
+                    for i, a in enumerate(prev_items)
+                )
+            else:
+                prev_summary = "（上一轮无 action items 记录）"
+            system = system.replace("{prev_action_items_summary}", f"上一轮 Action Items：\n{prev_summary}")
+            system = f"{system}\n{role_hint}"
+            
+            prev_decision_text = json.dumps(prev_decision, indent=2, ensure_ascii=False) if prev_decision else "（无）"
+            user_prompt = f"""## 当前 PRD
+{prd}
+
+## 上一轮 Decision（Scope Lock — 不能推翻的裁决）
+{prev_decision_text}
+
+请逐条验证 Action Items，只对遗漏的阻断级问题提新 blocker。"""
+        
+        print(f"  ⏳ {agent_id} 正在{'审阅' if is_round1 else '复核'}...")
         review = call_llm(system, user_prompt)
         reviews.append({"agent_id": agent_id, "content": review})
-        print(f"  ✅ {agent_id} 审阅完成")
+        print(f"  ✅ {agent_id} {'审阅' if is_round1 else '复核'}完成")
         
-        # 提取评审意见摘要
         for line in review.split("\n"):
             if line.strip().startswith("## 总体评价"):
                 break
@@ -355,7 +435,7 @@ def step3_parallel_review(prd: str, stage: dict, meeting: dict) -> list[dict]:
     meeting["reviews"] = reviews
     return reviews
 
-def step4_consensus(prd: str, reviews: list[dict]) -> dict:
+def step4_consensus(prd: str, reviews: list[dict], prev_decision: Optional[dict] = None) -> dict:
     """Step 4: 汇总裁决 — Project Manager 汇总评审意见做决策."""
     print("=" * 60)
     print("STEP 4: 汇总裁决")
@@ -364,13 +444,24 @@ def step4_consensus(prd: str, reviews: list[dict]) -> dict:
     review_text = "\n\n---\n\n".join(
         f"## {r['agent_id']} 的评审意见\n{r['content']}" for r in reviews
     )
+    
+    # 注入上一轮 Decision 作为 Scope Lock
+    scope_block = ""
+    if prev_decision:
+        scope_block = f"""
+
+## 上一轮已裁决（Scope Lock — 不能推翻的结论）
+{json.dumps({'type': prev_decision.get('type'), 'summary': prev_decision.get('summary'), 'action_items': prev_decision.get('action_items', [])}, indent=2, ensure_ascii=False)}
+
+注意：上述裁决结果在本轮不能被推翻。只能基于上一轮 action items 的完成情况做决策。"""
+    
     user_prompt = f"""请根据以下信息做出决策（只输出 JSON）：
 
 ## PRD 内容
 {prd}
 
 ## 评审意见
-{review_text}"""
+{review_text}{scope_block}"""
     
     raw = call_llm(MODERATOR_PROMPT, user_prompt)
     decision = _parse_decision_json(raw)
@@ -418,7 +509,7 @@ def _parse_decision_json(raw: str) -> dict:
     return {"type": dtype, "summary": raw[:200], "action_items": [], "conflicts": [], "raw": raw}
 
 def step5_freeze_or_revise(decision: dict, prd: str, stage: dict, meeting: dict) -> str:
-    """Step 5: 执行决策 — Freeze 或 Revise."""
+    """Step 5: 执行决策 — Freeze / Minor Revise then Freeze / Revise."""
     print("=" * 60)
     print("STEP 5: 执行决策")
     print("=" * 60)
@@ -428,13 +519,20 @@ def step5_freeze_or_revise(decision: dict, prd: str, stage: dict, meeting: dict)
     summary = decision.get("summary", "")
     
     if dtype in ("adopt", "freeze"):
+        # adopt 携带 action_items → 先做一次静默修订再冻结
+        action_items = decision.get("action_items", [])
+        if dtype == "adopt" and action_items:
+            print(f"🔧 adopt + {len(action_items)} 个微小修改 → 静默修订后冻结")
+            step6_revise_prd(decision, stage)
+            prd = (DOCS_DIR / "prd.md").read_text()
+        
         stage["status"] = "frozen"
         frozen_path = DOCS_DIR / "prd-frozen.md"
         frozen_path.write_text(prd)
         print(f"✅ PRD 已冻结！({frozen_path})")
         
         meeting["meta"]["status"] = "passed"
-        meeting["meta"]["decision"] = dtype
+        meeting["meta"]["decision"] = "freeze"
         meeting["body"] = f"## Decision ({dtype})\n\n{summary}\n\n```json\n{json.dumps(decision, indent=2, ensure_ascii=False)}\n```"
         save_meeting(meeting)
         save_stage(stage)
@@ -449,6 +547,12 @@ def step5_freeze_or_revise(decision: dict, prd: str, stage: dict, meeting: dict)
             })
         
         print("✅ 所有记忆已保存。MVP 闭环完成！")
+        
+        # 清理 Scope Lock 残余文件
+        decision_file = AISC_DIR / "decision_memory.json"
+        if decision_file.exists():
+            decision_file.unlink()
+        
         return "frozen"
     
     elif dtype == "revise":
@@ -546,6 +650,14 @@ def main():
     project = load_project()
     stage = load_stage("stage-requirement")
     
+    if stage.get("status") == "frozen":
+        frozen = DOCS_DIR / "prd-frozen.md"
+        if frozen.exists():
+            print(f"✅ 项目已完成冻结，PRD: {frozen} ({frozen.stat().st_size} bytes)")
+        else:
+            print("⚠️  Stage 状态为 frozen 但 prd-frozen.md 不存在")
+        return
+    
     # 断点续跑：从 current_version 决定起始轮次
     prd_exists = (DOCS_DIR / "prd.md").exists()
     if prd_exists and stage.get("current_version", 1) > 1:
@@ -557,10 +669,20 @@ def main():
         save_stage(stage)
     
     MAX_ROUNDS = 5
+    prev_decision = None  # 上一轮 Decision，用于 Scope Lock
+    
+    # 恢复上一轮 Decision（断点续跑时）
+    decision_file = AISC_DIR / "decision_memory.json"
+    if decision_file.exists() and round_num > 1:
+        try:
+            prev_decision = json.loads(decision_file.read_text())
+            print(f"📋 已加载上一轮 Decision（Scope Lock 生效）\n")
+        except Exception:
+            pass
     
     while round_num <= MAX_ROUNDS:
         print(f"\n{'=' * 60}")
-        print(f" 第 {round_num} 轮评审")
+        print(f" 第 {round_num} 轮评审{'（全量深度评审）' if round_num == 1 else '（定向复核）'}")
         print(f"{'=' * 60}\n")
         
         if round_num == 1 and not prd_exists:
@@ -572,13 +694,17 @@ def main():
                 break
         
         meeting = step2_create_meeting(stage, round_num)
-        reviews = step3_parallel_review(prd, stage, meeting)
-        decision = step4_consensus(prd, reviews)
+        reviews = step3_parallel_review(prd, stage, meeting, round_num, prev_decision)
+        decision = step4_consensus(prd, reviews, prev_decision)
         result = step5_freeze_or_revise(decision, prd, stage, meeting)
         
         if result == "frozen":
             break
         elif result == "revise":
+            # 保存当前 Decision 作为下一轮的 Scope Lock
+            decision_file.write_text(json.dumps(decision, indent=2, ensure_ascii=False))
+            prev_decision = decision
+            
             if round_num >= MAX_ROUNDS:
                 print(f"\n⚠️  已达最大评审轮次 ({MAX_ROUNDS})，需要用户介入决策。")
                 break

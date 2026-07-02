@@ -1,0 +1,16 @@
+{
+  "type": "decision",
+  "title": "参与需求评审 meeting-002",
+  "content": "[REVIEW_COMMENT]\n## tech-lead 的复核意见\n\n### Action Items 验证\n上一轮 Action Items：\n- Action Item 1: **已解决** — PRD 3.2 节明确采用“前端直传签名方式上传至云对象存储（如阿里云 OSS）”，技术方案清晰。\n- Action Item 2: **已解决** — PRD 3.2 节声明“本版本暂不支持封面生成或用户上传，列表页及详情页封面字段统一使用固定占位图”，并在 3.3 节输出中体现。\n- Action Item 3: **已解决** — PRD 3.2 节明确“视频 URL 公开可访问（无需认证）”，符合 Scope。\n- Action Item 4: **已解决** — PRD 3.3 节和业务规则中均明确“按上传时间倒序排序”，降级方案可接受。\n- Action Item 5: **已解决** — PRD 3.4 节和业务规则均描述为切换行为，移除二义性。\n- Action Item 6: **已解决** — PRD 3.3 节输出和 3.4 节均提及 `is_favorited` 字段。\n- Action Item 7: **已解决** — PRD 3.4 节和业务规则均明确“弹窗提示‘请先登录’，保留当前页面不跳转”。\n- Action Item 8: **已解决** — PRD 业务规则中明确“视频文件大小上限 2GB，支持格式 mp4、avi、mov（后台可配置列表）”。\n- Action Item 9: **已解决** — PRD 业务规则中明确“分页超出总页数时，返回空列表（data 为 []），但 total 和 total_pages 依然返回正确的总条数和总页数”。\n- Action Item 10: **已解决** — PRD 业务规则中明确“每页数量默认 20，超过最大值 100 时自动截断为 100，不报错”。\n- Action Item 11: **已解决** — PRD 业务规则中明确“英文逗号分隔，自动 trim 前后空格，空标签忽略”。\n- Action Item 12: **已解决** — PRD 3.6 节已补充详情页字段列表（标题、描述、标签、上传者、上传时间、封面占位图、收藏状态）。\n- Action Item 13: **已解决** — PRD 3.2 节和验收标准均补充了“上传中 loading、进度条、成功/失败提示”。\n- Action Item 14: **已解决** — 验收标准中已添加并发场景测试用例。\n\n### 🔴 新增 Blocker（仅限被遗漏的阻断级问题）\n无\n\n### 🟡 Important\n- **并发收藏的最终一致性实现细节**：PRD 验收标准提到“最终状态与最后一次操作一致”，但未明确实现方式。建议：服务端可采用数据库唯一约束（(user_id, video_id)）配合 retry-on-conflict 或乐观锁（版本号）来保证最终一致性。虽然上一轮已裁定方向，但此细节在 API 设计前明确可避免后续返工。建议在下一阶段（API 设计文档）中明确。\n\n### 🟢 Suggestion\n- **上传失败后的最大重试次数**：PRD 中描述了上传失败后用户可重新选择，但未规定是否支持自动重试。建议明确前端不自动重试（避免用户无感知重复上传），仅提示错误。\n\n### ✅ Approved\n- **存储方案**：云 OSS + 前端直传签名，方案成熟，无技术风险。\n- **搜索排序**：降级为按上传时间倒序，简单可靠，符合 MVP 要求。\n- **收藏切换交互**：行为清晰，API 无需额外逻辑，仅做 insert/delete。\n- **未登录提示**：前端弹窗保留下拉，实现简单，符合安全要求。\n- **分页截断与边界**：行为明确，无歧义。\n- **文件限制与格式**：可配置，灵活。\n- **验收标准**：覆盖核心场景与并发，质量达标。\n\n## 总体评价\n- [x] Approve（action items 全部解决，无新增 blocker，同意冻结）\n- [ ] Needs Revision（仍有未解决的 blocker 或 important 问题）",
+  "relations": [
+    {
+      "type": "based_on",
+      "target_type": "meeting",
+      "target_id": "meeting-002"
+    }
+  ],
+  "tags": [
+    "需求评审",
+    "PRD"
+  ]
+}
